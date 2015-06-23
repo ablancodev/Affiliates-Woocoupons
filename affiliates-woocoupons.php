@@ -57,7 +57,6 @@ class Affiliates_Woocoupons_Plugin {
 		
 		$aff_id = Affiliates_Service::get_referrer_id();
 		
-		
 		if ( $aff_id ) {
 			$attrTable = $affiliates_db->get_tablename( 'affiliates_attributes' );
 			$attributes = $affiliates_db->get_objects( "SELECT * FROM $attrTable WHERE affiliate_id = %d", $aff_id );
@@ -66,37 +65,30 @@ class Affiliates_Woocoupons_Plugin {
 				if ( $attribute->attr_key == "coupons" )
 					$coupon_code = $attribute->attr_value;
 			}
-
-			// If coupon has been already been added remove it.
-			if ($woocommerce->cart->has_discount(sanitize_text_field($coupon_code))) {
-				
-				if (!$woocommerce->cart->remove_coupons(sanitize_text_field($coupon_code))) {
+			
+			if ( isset( $coupon_code ) && ( $coupon_code !== "" ) ) {
+				// If coupon has been already been added remove it.
+				if ($woocommerce->cart->has_discount(sanitize_text_field($coupon_code))) {
 					
-					$woocommerce->show_messages();
-			
+					if (!$woocommerce->cart->remove_coupons(sanitize_text_field($coupon_code))) {
+						wc_print_notices();
+					}
 				}
-			
-			}
-			
-			// Add coupon
-			if (!$woocommerce->cart->add_discount(sanitize_text_field($coupon_code))) {
 				
-				$woocommerce->show_messages();
-			
-			} else {
+				// Add coupon
+				if (!$woocommerce->cart->add_discount(sanitize_text_field($coupon_code))) {
+					wc_print_notices();
+				} else {
+					wc_clear_notices();
+					wc_add_notice('"' . $coupon_code . __('" coupon automatically applied', AFFILIATES_WOOCOUPONS_DOMAIN) );
+					wc_print_notices();
+				}
 				
-				$woocommerce->clear_messages();
-				$woocommerce->add_message('"' . $coupon_code . __('" coupon automatically applied', AFFILIATES_WOOCOUPONS_DOMAIN) );
-				$woocommerce->show_messages();
-			
+				// Manually recalculate totals.  If you do not do this, a refresh is required before user will see updated totals when discount is removed.
+				$woocommerce->cart->calculate_totals();
+				
 			}
-			
-			// Manually recalculate totals.  If you do not do this, a refresh is required before user will see updated totals when discount is removed.
-			$woocommerce->cart->calculate_totals();
-			
-			
 		}
-		
 	}
 }
 
