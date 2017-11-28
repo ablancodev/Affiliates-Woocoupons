@@ -22,7 +22,7 @@
  * Plugin URI: http://itthinx.com
  * Description: Applies Woocommerce coupon automatically if you are referred by an affiliate that has a coupon assigned.
  * Author: eggemplo
- * Version: 1.0
+ * Version: 1.1
  * Author URI: http://www.eggemplo.com
 **/
 
@@ -65,25 +65,26 @@ class Affiliates_Woocoupons_Plugin {
 				if ( $attribute->attr_key == "coupons" )
 					$coupon_code = $attribute->attr_value;
 			}
-			
 			if ( isset( $coupon_code ) && ( $coupon_code !== "" ) ) {
-				// If coupon has been already been added remove it.
-				if ($woocommerce->cart->has_discount(sanitize_text_field($coupon_code))) {
+				$coupon_codes = explode( ',', $coupon_code );
+				foreach ( $coupon_codes as $coupon_code ) {
+					$coupon_code = trim( $coupon_code );
+					if ($woocommerce->cart->has_discount(sanitize_text_field($coupon_code))) {
+						
+						if (!$woocommerce->cart->remove_coupons(sanitize_text_field($coupon_code))) {
+							wc_print_notices();
+						}
+					}
 					
-					if (!$woocommerce->cart->remove_coupons(sanitize_text_field($coupon_code))) {
+					// Add coupon
+					if (!$woocommerce->cart->add_discount(sanitize_text_field($coupon_code))) {
+						wc_print_notices();
+					} else {
+						wc_clear_notices();
+						wc_add_notice('"' . $coupon_code . __('" coupon automatically applied', AFFILIATES_WOOCOUPONS_DOMAIN) );
 						wc_print_notices();
 					}
 				}
-				
-				// Add coupon
-				if (!$woocommerce->cart->add_discount(sanitize_text_field($coupon_code))) {
-					wc_print_notices();
-				} else {
-					wc_clear_notices();
-					wc_add_notice('"' . $coupon_code . __('" coupon automatically applied', AFFILIATES_WOOCOUPONS_DOMAIN) );
-					wc_print_notices();
-				}
-				
 				// Manually recalculate totals.  If you do not do this, a refresh is required before user will see updated totals when discount is removed.
 				$woocommerce->cart->calculate_totals();
 				
@@ -93,5 +94,3 @@ class Affiliates_Woocoupons_Plugin {
 }
 
 Affiliates_Woocoupons_Plugin::init();
-
-?>
